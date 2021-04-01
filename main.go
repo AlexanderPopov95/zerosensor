@@ -55,10 +55,12 @@ func main() {
 	}()
 
 	http.Handle("/metrics", promhttp.Handler())
-	err = http.ListenAndServe(addr, nil)
-	if err != nil {
-		panic(err)
-	}
+	go func() {
+		err = http.ListenAndServe(addr, nil)
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	fmt.Printf("server started on %s\n", addr)
 
