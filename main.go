@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,6 +18,11 @@ const (
 	addr = ":8081"
 	pin  = "GPIO17"
 )
+
+type Temp struct {
+	Temp     float64
+	Humidity float64
+}
 
 func main() {
 	mainRoomTemp := prometheus.NewGauge(prometheus.GaugeOpts{
@@ -55,6 +61,14 @@ func main() {
 	}()
 
 	http.Handle("/metrics", promhttp.Handler())
+	http.HandleFunc("/temp", func(writer http.ResponseWriter, request *http.Request) {
+		js, _ := json.Marshal(Temp{
+			Temp:     temperature,
+			Humidity: humidity,
+		})
+		writer.Write(js)
+		writer.WriteHeader(200)
+	})
 	go func() {
 		err = http.ListenAndServe(addr, nil)
 		if err != nil {
