@@ -110,8 +110,22 @@ func startMhz19b(metric prometheus.Gauge, stop chan struct{}) {
 			fmt.Println(err)
 			continue
 		}
+		crc := getCheckSum(buf)
+		if buf[8] != crc {
+			fmt.Println("CRC error")
+			continue
+		}
 		result := int(buf[2])*256 + int(buf[3])
 		metric.Set(float64(result))
-		fmt.Println(result)
 	}
+}
+
+func getCheckSum(packet []byte) byte {
+	var checksum byte = 0
+	for i := 1; i < 8; i++ {
+		checksum += packet[i]
+	}
+	checksum = 255 - checksum
+	checksum += 1
+	return checksum
 }
