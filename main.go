@@ -67,7 +67,7 @@ func main() {
 		writer.Write(js)
 		writer.WriteHeader(200)
 	})
-	go startMhz19b(mainRoomCO2)
+	go startMhz19b(mainRoomCO2, stop)
 	go func() {
 		err = http.ListenAndServe(addr, nil)
 		if err != nil {
@@ -86,19 +86,24 @@ func main() {
 	fmt.Println("successfully stopped =)")
 }
 
-func startMhz19b(metric prometheus.Gauge) {
+func startMhz19b(metric prometheus.Gauge, stop chan struct{}) {
 	c := &serial.Config{Name: serial0, Baud: 9600, Size: 8, Parity: 0, StopBits: 1}
 	port, err := serial.OpenPort(c)
 	if err != nil {
 		panic(err)
 	}
-	time.Sleep(time.Second)
 	defer port.Close()
-	_, err = port.Write([]byte{0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79})
-	if err != nil {
-		panic(err)
-	}
 	for {
+		select {
+		case <-stop:
+			return
+		case <-time.After(time.Second):
+			break
+		}
+		_, err = port.Write([]byte{0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79})
+		if err != nil {
+			panic(err)
+		}
 		buf := make([]byte, 9)
 		_, err = port.Read(buf)
 		if err != nil {
